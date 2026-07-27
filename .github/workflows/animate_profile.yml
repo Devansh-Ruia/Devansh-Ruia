@@ -1,0 +1,41 @@
+name: Rotate Animated Profile Frame
+
+on:
+  schedule:
+    # Triggers every hour on the hour
+    - cron: '0 * * * *'
+  workflow_dispatch: # Allows manual trigger testing inside your repository layout
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Dynamic Frame Selection
+        run: |
+          # Count available frame files in data directory
+          TOTAL_FRAMES=$(ls data/readme_frame_*.md | wc -l)
+          
+          # Read current state or initialize at zero
+          if [ -f data/current_frame.txt ]; then
+            CURRENT=$(cat data/current_frame.txt)
+          else
+            CURRENT=0
+          fi
+          
+          # Compute next frame iteration index
+          NEXT=$(( (CURRENT + 1) % TOTAL_FRAMES ))
+          echo $NEXT > data/current_frame.txt
+          
+          # Overwrite target root profile document with the active matrix frame
+          cp data/readme_frame_${CURRENT}.md README.md
+
+      - name: Commit and Push Profile Update
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@://github.com"
+          git add README.md data/current_frame.txt
+          git commit -m "chore: cycle profile animation frame" || exit 0
+          git push
