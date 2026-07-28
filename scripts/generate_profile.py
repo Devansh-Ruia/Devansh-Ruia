@@ -4,7 +4,6 @@ from rembg import remove
 import os
 
 # --- 1. CONFIGURATION & DATA ---
-# Inverted character sequence layout so 255 (white/background) maps strictly to a blank space " "
 ASCII_CHARS = ["#", "@", "%", "*", "+", "=", "-", ":", ".", " "]
 IMAGE_PATH = r"C:\Users\super\OneDrive\Pictures\Screenshots 1\Screenshot 2026-07-27 143529.png"
 OUTPUT_DIR = "data"
@@ -46,7 +45,8 @@ def process_source_image(img_path):
     print("[2/4] Injecting local highlights via CLAHE...")
     lab = cv2.cvtColor(bgr, cv2.COLOR_BGR2LAB)
     l, a, b = cv2.split(lab)
-    clahe = cv2.createCLAHE(clipLimit=3.0, tileGridSize=(8, 8))
+    # Balanced clip limit gives details high contrast definition
+    clahe = cv2.createCLAHE(clipLimit=4.0, tileGridSize=(8, 8))
     cl = clahe.apply(l)
     enhanced_bgr = cv2.cvtColor(cv2.merge((cl, a, b)), cv2.COLOR_LAB2BGR)
 
@@ -60,7 +60,7 @@ def process_source_image(img_path):
     return cv2.cvtColor(final_bgr, cv2.COLOR_BGR2GRAY)
 
 # --- 3. ASCII ART GENERATOR ---
-def image_to_ascii(gray_img, cols=50, scale=0.43):
+def image_to_ascii(gray_img, cols=85, scale=0.43): # Increased columns from 50 to 85 for high definition
     h, w = gray_img.shape
     img_w = w / cols
     img_h = img_w / scale
@@ -73,7 +73,7 @@ def image_to_ascii(gray_img, cols=50, scale=0.43):
         ascii_matrix.append(line)
     return ascii_matrix
 
-#--- 4. ANIMATION FRAME ENGINE ---
+# --- 4. ANIMATION FRAME ENGINE ---
 def generate_readme_frames(ascii_matrix, bio_text, frames=5):
     os.makedirs(OUTPUT_DIR, exist_ok=True)
     ascii_width = len(ascii_matrix[0])
@@ -83,13 +83,14 @@ def generate_readme_frames(ascii_matrix, bio_text, frames=5):
         markdown_output.append("<table>")
         markdown_output.append("<tr>")
         
-        markdown_output.append('<td valign="top" width="50%">\n\n```text')
+        # Widened the width attribute to accommodate the higher resolution matrix cleanly
+        markdown_output.append('<td valign="top" width="60%">\n\n```text')
         for row in ascii_matrix:
             shifted_row = [row[(j + frame) % ascii_width] for j in range(ascii_width)]
             markdown_output.append("".join(shifted_row))
         markdown_output.append("```\n\n</td>")
         
-        markdown_output.append(f'<td valign="top" width="50%">\n\n{bio_text}\n\n</td>')
+        markdown_output.append(f'<td valign="top" width="40%">\n\n{bio_text}\n\n</td>')
         
         markdown_output.append("</tr>")
         markdown_output.append("</table>")
@@ -98,9 +99,9 @@ def generate_readme_frames(ascii_matrix, bio_text, frames=5):
         with open(frame_path, "w", encoding="utf-8") as f:
             f.write("\n".join(markdown_output))
             
-    print(f"[4/4] Side-by-side layout generated successfully in '{OUTPUT_DIR}/'!")
+    print(f"[4/4] HD Layout frames generated successfully in '{OUTPUT_DIR}/'!")
 
 if __name__ == "__main__":
     processed_gray = process_source_image(IMAGE_PATH)
-    matrix = image_to_ascii(processed_gray, cols=50)
+    matrix = image_to_ascii(processed_gray, cols=85)
     generate_readme_frames(matrix, BIO_MARKDOWN, frames=FRAME_COUNT)
