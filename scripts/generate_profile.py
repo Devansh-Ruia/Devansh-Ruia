@@ -4,7 +4,8 @@ from rembg import remove
 import os
 
 # --- 1. CONFIGURATION & DATA ---
-ASCII_CHARS = ["#", "@", "%", "*", "+", "=", "-", ":", ".", " "]
+# Dark mode ramp: Dark/empty areas map to spaces, bright highlights map to dense blocks
+ASCII_CHARS = [" ", ".", ":", "-", "=", "+", "*", "%", "@", "#"]
 IMAGE_PATH = r"C:\Users\super\OneDrive\Pictures\Screenshots 1\Screenshot 2026-07-27 143529.png"
 OUTPUT_DIR = "data"
 FRAME_COUNT = 5
@@ -42,25 +43,17 @@ def process_source_image(img_path):
     bgr = rgba_img[:, :, 0:3]
     alpha = rgba_img[:, :, 3]
 
-    print("[2/4] Injecting local highlights via CLAHE...")
-    lab = cv2.cvtColor(bgr, cv2.COLOR_BGR2LAB)
-    l, a, b = cv2.split(lab)
-    # ClipLimit=4.0 brings out punchy micro-shadows on facial geometry
-    clahe = cv2.createCLAHE(clipLimit=4.0, tileGridSize=(8, 8))
-    cl = clahe.apply(l)
-    enhanced_bgr = cv2.cvtColor(cv2.merge((cl, a, b)), cv2.COLOR_LAB2BGR)
-
-    print("[3/4] Compositing to pure white mask background...")
-    white_bg = np.full(enhanced_bgr.shape, 255, dtype=np.uint8)
-    mask = cv2.merge([alpha.astype(float)/255.0]*3)
-    fg = cv2.multiply(enhanced_bgr.astype(float), mask)
-    bg = cv2.multiply(white_bg.astype(float), 1.0 - mask)
+    print("[2/4] Boosting local features via CLAHE...")
+    gray = cv2.cvtColor(bgr, cv2.COLOR_BGR2GRAY)
     
-    final_bgr = cv2.add(fg, bg).astype(np.uint8)
-    return cv2.cvtColor(final_bgr, cv2.COLOR_BGR2GRAY), alpha
+    # Aggressive clip limit ensures faint features register clearly over the dark canvas background
+    clahe = cv2.createCLAHE(clipLimit=5.0, tileGridSize=(8, 8))
+    cl_gray = clahe.apply(gray)
+    
+    return cl_gray, alpha
 
 # --- 3. DYNAMIC SHIMMER MATRIX GENERATOR ---
-def generate_readme_frames(gray_img, alpha, bio_text, cols=85, scale=0.43, frames=5):
+def generate_readme_frames(gray_img, alpha, bio_text, cols=75, scale=0.43, frames=5):
     os.makedirs(OUTPUT_DIR, exist_ok=True)
     
     h, w = gray_img.shape
@@ -76,18 +69,17 @@ def generate_readme_frames(gray_img, alpha, bio_text, cols=85, scale=0.43, frame
         markdown_output.append("<table>")
         markdown_output.append("<tr>")
         
-        # Left column: Fixed placement ASCII matrix block
-        markdown_output.append('<td valign="top" width="60%">\n\n```text')
+        markdown_output.append('<td valign="top" width="55%">\n\n```text')
         
         for r_idx, row in enumerate(resized_gray):
             line_chars = []
             for c_idx, pixel in enumerate(row):
-                if resized_alpha[r_idx, c_idx] < 50:
-                    # Clear canvas background maps exactly to space characters
+                # Check background transparency mask threshold directly
+                if resized_alpha[r_idx, c_idx] < 30:
                     line_chars.append(" ")
                 else:
-                    # Smooth sinusoidal contrast shimmer shifts text weight gently
-                    shimmer_offset = int(np.sin((r_idx / 5.0) + (frame * 1.0)) * 12)
+                    # Subtle ambient noise ripple across vertical channels over time
+                    shimmer_offset = int(np.sin((r_idx / 6.0) + (frame * 0.9)) * 15)
                     adjusted_pixel = np.clip(pixel + shimmer_offset, 0, 255)
                     char_idx = int(adjusted_pixel / 256 * len(ASCII_CHARS))
                     line_chars.append(ASCII_CHARS[char_idx])
@@ -95,10 +87,7 @@ def generate_readme_frames(gray_img, alpha, bio_text, cols=85, scale=0.43, frame
             markdown_output.append("".join(line_chars))
             
         markdown_output.append("```\n\n</td>")
-        
-        # Right column: Bio description text block
-        markdown_output.append(f'<td valign="top" width="40%">\n\n{bio_text}\n\n</td>')
-        
+        markdown_output.append(f'<td valign="top" width="45%">\n\n{bio_text}\n\n</td>')
         markdown_output.append("</tr>")
         markdown_output.append("</table>")
         
@@ -106,8 +95,8 @@ def generate_readme_frames(gray_img, alpha, bio_text, cols=85, scale=0.43, frame
         with open(frame_path, "w", encoding="utf-8") as f:
             f.write("\n".join(markdown_output))
             
-    print(f"[4/4] High contrast shimmer frames baked in '{OUTPUT_DIR}/'!")
+    print(f"[4/4] Dark mode optimization engine successfully baked in '{OUTPUT_DIR}/'!")
 
 if __name__ == "__main__":
     processed_gray, alpha_channel = process_source_image(IMAGE_PATH)
-    generate_readme_frames(processed_gray, alpha_channel, BIO_MARKDOWN, cols=85, frames=FRAME_COUNT)
+    generate_readme_frames(processed_gray, alpha_channel, BIO_MARKDOWN, cols=75, frames=FRAME_COUNT)
