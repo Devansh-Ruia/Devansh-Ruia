@@ -42,54 +42,54 @@ def process_source_image(img_path):
     bgr = rgba_img[:, :, 0:3]
     alpha = rgba_img[:, :, 3]
 
-    print("[2/4] Injecting local highlights via CLAHE...")
-    lab = cv2.cvtColor(bgr, cv2.COLOR_BGR2LAB)
-    l, a, b = cv2.split(lab)
-    # Balanced clip limit gives details high contrast definition
-    clahe = cv2.createCLAHE(clipLimit=4.0, tileGridSize=(8, 8))
-    cl = clahe.apply(l)
-    enhanced_bgr = cv2.cvtColor(cv2.merge((cl, a, b)), cv2.COLOR_LAB2BGR)
-
-    print("[3/4] Compositing to pure white mask background...")
-    white_bg = np.full(enhanced_bgr.shape, 255, dtype=np.uint8)
+    print("[2/4] Isolating foreground mask channel...")
+    white_bg = np.full(bgr.shape, 255, dtype=np.uint8)
     mask = cv2.merge([alpha.astype(float)/255.0]*3)
-    fg = cv2.multiply(enhanced_bgr.astype(float), mask)
+    fg = cv2.multiply(bgr.astype(float), mask)
     bg = cv2.multiply(white_bg.astype(float), 1.0 - mask)
     
     final_bgr = cv2.add(fg, bg).astype(np.uint8)
-    return cv2.cvtColor(final_bgr, cv2.COLOR_BGR2GRAY)
+    return cv2.cvtColor(final_bgr, cv2.COLOR_BGR2GRAY), alpha
 
-# --- 3. ASCII ART GENERATOR ---
-def image_to_ascii(gray_img, cols=85, scale=0.43): # Increased columns from 50 to 85 for high definition
+# --- 3. DYNAMIC SHIMMER MATRIX GENERATOR ---
+def generate_readme_frames(gray_img, alpha, bio_text, cols=85, scale=0.43, frames=5):
+    os.makedirs(OUTPUT_DIR, exist_ok=True)
+    
     h, w = gray_img.shape
     img_w = w / cols
     img_h = img_w / scale
     rows = int(h / img_h)
     
-    resized = cv2.resize(gray_img, (cols, rows))
-    ascii_matrix = []
-    for row in resized:
-        line = [ASCII_CHARS[int(pixel / 256 * len(ASCII_CHARS))] for pixel in row]
-        ascii_matrix.append(line)
-    return ascii_matrix
-
-# --- 4. ANIMATION FRAME ENGINE ---
-def generate_readme_frames(ascii_matrix, bio_text, frames=5):
-    os.makedirs(OUTPUT_DIR, exist_ok=True)
-    ascii_width = len(ascii_matrix[0])
+    resized_gray = cv2.resize(gray_img, (cols, rows))
+    resized_alpha = cv2.resize(alpha, (cols, rows))
 
     for frame in range(frames):
         markdown_output = []
         markdown_output.append("<table>")
         markdown_output.append("<tr>")
         
-        # Widened the width attribute to accommodate the higher resolution matrix cleanly
+        # Left column: Fixed placement ASCII matrix block
         markdown_output.append('<td valign="top" width="60%">\n\n```text')
-        for row in ascii_matrix:
-            shifted_row = [row[(j + frame) % ascii_width] for j in range(ascii_width)]
-            markdown_output.append("".join(shifted_row))
+        
+        # Apply a subtle localized variance phase loop over each row
+        for r_idx, row in enumerate(resized_gray):
+            line_chars = []
+            for c_idx, pixel in enumerate(row):
+                if resized_alpha[r_idx, c_idx] < 50:
+                    # Keep true background strictly empty space
+                    line_chars.append(" ")
+                else:
+                    # Apply a scanning light ripple across rows over time
+                    shimmer_offset = int(np.sin((r_idx / 4.0) + (frame * 1.2)) * 15)
+                    adjusted_pixel = np.clip(pixel + shimmer_offset, 0, 255)
+                    char_idx = int(adjusted_pixel / 256 * len(ASCII_CHARS))
+                    line_chars.append(ASCII_CHARS[char_idx])
+                    
+            markdown_output.append("".join(line_chars))
+            
         markdown_output.append("```\n\n</td>")
         
+        # Right column: Bio description profile text content block
         markdown_output.append(f'<td valign="top" width="40%">\n\n{bio_text}\n\n</td>')
         
         markdown_output.append("</tr>")
@@ -99,9 +99,8 @@ def generate_readme_frames(ascii_matrix, bio_text, frames=5):
         with open(frame_path, "w", encoding="utf-8") as f:
             f.write("\n".join(markdown_output))
             
-    print(f"[4/4] HD Layout frames generated successfully in '{OUTPUT_DIR}/'!")
+    print(f"[4/4] Continuous shimmer matrix animation successfully baked in '{OUTPUT_DIR}/'!")
 
 if __name__ == "__main__":
-    processed_gray = process_source_image(IMAGE_PATH)
-    matrix = image_to_ascii(processed_gray, cols=85)
-    generate_readme_frames(matrix, BIO_MARKDOWN, frames=FRAME_COUNT)
+    processed_gray, alpha_channel = process_source_image(IMAGE_PATH)
+    generate_readme_frames(processed_gray, alpha_channel, BIO_MARKDOWN, cols=85, frames=FRAME_COUNT)
