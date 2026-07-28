@@ -4,6 +4,7 @@ from rembg import remove
 import os
 
 # --- 1. CONFIGURATION & DATA ---
+# Classic dark-mode progression: dark tones map to thin marks, bright highlights map to dense blocks
 ASCII_CHARS = [" ", ".", ":", "-", "=", "+", "*", "%", "@", "#"]
 IMAGE_PATH = r"C:\Users\super\OneDrive\Pictures\Screenshots 1\Screenshot 2026-07-27 143529.png"
 OUTPUT_DIR = "data"
@@ -31,7 +32,7 @@ BIO_MARKDOWN = """# Devansh Ruia
 * **ACM Research Hour:** Presenting the reproduction this fall, as practice for the people who will later ask harder questions and mean it.
 """
 
-# --- 2. IMAGE PREPROCESSING (rembg + CLAHE) ---
+# --- 2. IMAGE PREPROCESSING ---
 def process_source_image(img_path):
     img = cv2.imread(img_path)
     if img is None:
@@ -42,14 +43,10 @@ def process_source_image(img_path):
     bgr = rgba_img[:, :, 0:3]
     alpha = rgba_img[:, :, 3]
 
-    print("[2/4] Boosting local features via CLAHE...")
+    print("[2/4] Converting to Grayscale...")
     gray = cv2.cvtColor(bgr, cv2.COLOR_BGR2GRAY)
     
-    # High clip limit enhances distinct contour lines over a dark layout
-    clahe = cv2.createCLAHE(clipLimit=5.0, tileGridSize=(8, 8))
-    cl_gray = clahe.apply(gray)
-    
-    return cl_gray, alpha
+    return gray, alpha
 
 # --- 3. DYNAMIC SHIMMER MATRIX GENERATOR ---
 def generate_readme_frames(gray_img, alpha, bio_text, cols=75, scale=0.43, frames=5):
@@ -73,13 +70,18 @@ def generate_readme_frames(gray_img, alpha, bio_text, cols=75, scale=0.43, frame
         for r_idx, row in enumerate(resized_gray):
             line_chars = []
             for c_idx, pixel in enumerate(row):
-                if resized_alpha[r_idx, c_idx] < 30:
+                # Strict alpha barrier threshold mapping keeps true background blank
+                if resized_alpha[r_idx, c_idx] < 15:
                     line_chars.append(" ")
                 else:
+                    # Apply a standard mathematical inversion so bright moth core elements stay filled
+                    # 255 becomes dense character, 0 becomes faint text character
+                    inverted_pixel = 255 - int(pixel)
+                    
                     # Subtle ambient noise ripple across vertical channels over time
-                    shimmer_offset = int(np.sin((r_idx / 6.0) + (frame * 0.9)) * 15)
-                    # Casting to standard int prevents NumPy uint8 rollover bugs
-                    adjusted_pixel = np.clip(int(pixel) + shimmer_offset, 0, 255)
+                    shimmer_offset = int(np.sin((r_idx / 5.0) + (frame * 1.0)) * 10)
+                    adjusted_pixel = np.clip(inverted_pixel + shimmer_offset, 0, 255)
+                    
                     char_idx = int(adjusted_pixel / 256 * len(ASCII_CHARS))
                     line_chars.append(ASCII_CHARS[char_idx])
                     
@@ -94,7 +96,7 @@ def generate_readme_frames(gray_img, alpha, bio_text, cols=75, scale=0.43, frame
         with open(frame_path, "w", encoding="utf-8") as f:
             f.write("\n".join(markdown_output))
             
-    print(f"[4/4] Dark mode engine compiled successfully in '{OUTPUT_DIR}/'!")
+    print(f"[4/4] Brightened profile matrix maps successfully updated in '{OUTPUT_DIR}/'!")
 
 if __name__ == "__main__":
     processed_gray, alpha_channel = process_source_image(IMAGE_PATH)
