@@ -4,7 +4,6 @@ from rembg import remove
 import os
 
 # --- 1. CONFIGURATION & DATA ---
-# Dark mode ramp: Dark/empty areas map to spaces, bright highlights map to dense blocks
 ASCII_CHARS = [" ", ".", ":", "-", "=", "+", "*", "%", "@", "#"]
 IMAGE_PATH = r"C:\Users\super\OneDrive\Pictures\Screenshots 1\Screenshot 2026-07-27 143529.png"
 OUTPUT_DIR = "data"
@@ -46,7 +45,7 @@ def process_source_image(img_path):
     print("[2/4] Boosting local features via CLAHE...")
     gray = cv2.cvtColor(bgr, cv2.COLOR_BGR2GRAY)
     
-    # Aggressive clip limit ensures faint features register clearly over the dark canvas background
+    # High clip limit enhances distinct contour lines over a dark layout
     clahe = cv2.createCLAHE(clipLimit=5.0, tileGridSize=(8, 8))
     cl_gray = clahe.apply(gray)
     
@@ -74,13 +73,13 @@ def generate_readme_frames(gray_img, alpha, bio_text, cols=75, scale=0.43, frame
         for r_idx, row in enumerate(resized_gray):
             line_chars = []
             for c_idx, pixel in enumerate(row):
-                # Check background transparency mask threshold directly
                 if resized_alpha[r_idx, c_idx] < 30:
                     line_chars.append(" ")
                 else:
                     # Subtle ambient noise ripple across vertical channels over time
                     shimmer_offset = int(np.sin((r_idx / 6.0) + (frame * 0.9)) * 15)
-                    adjusted_pixel = np.clip(pixel + shimmer_offset, 0, 255)
+                    # Casting to standard int prevents NumPy uint8 rollover bugs
+                    adjusted_pixel = np.clip(int(pixel) + shimmer_offset, 0, 255)
                     char_idx = int(adjusted_pixel / 256 * len(ASCII_CHARS))
                     line_chars.append(ASCII_CHARS[char_idx])
                     
@@ -95,7 +94,7 @@ def generate_readme_frames(gray_img, alpha, bio_text, cols=75, scale=0.43, frame
         with open(frame_path, "w", encoding="utf-8") as f:
             f.write("\n".join(markdown_output))
             
-    print(f"[4/4] Dark mode optimization engine successfully baked in '{OUTPUT_DIR}/'!")
+    print(f"[4/4] Dark mode engine compiled successfully in '{OUTPUT_DIR}/'!")
 
 if __name__ == "__main__":
     processed_gray, alpha_channel = process_source_image(IMAGE_PATH)
