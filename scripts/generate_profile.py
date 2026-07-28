@@ -42,10 +42,18 @@ def process_source_image(img_path):
     bgr = rgba_img[:, :, 0:3]
     alpha = rgba_img[:, :, 3]
 
-    print("[2/4] Isolating foreground mask channel...")
-    white_bg = np.full(bgr.shape, 255, dtype=np.uint8)
+    print("[2/4] Injecting local highlights via CLAHE...")
+    lab = cv2.cvtColor(bgr, cv2.COLOR_BGR2LAB)
+    l, a, b = cv2.split(lab)
+    # ClipLimit=4.0 brings out punchy micro-shadows on facial geometry
+    clahe = cv2.createCLAHE(clipLimit=4.0, tileGridSize=(8, 8))
+    cl = clahe.apply(l)
+    enhanced_bgr = cv2.cvtColor(cv2.merge((cl, a, b)), cv2.COLOR_LAB2BGR)
+
+    print("[3/4] Compositing to pure white mask background...")
+    white_bg = np.full(enhanced_bgr.shape, 255, dtype=np.uint8)
     mask = cv2.merge([alpha.astype(float)/255.0]*3)
-    fg = cv2.multiply(bgr.astype(float), mask)
+    fg = cv2.multiply(enhanced_bgr.astype(float), mask)
     bg = cv2.multiply(white_bg.astype(float), 1.0 - mask)
     
     final_bgr = cv2.add(fg, bg).astype(np.uint8)
@@ -71,16 +79,15 @@ def generate_readme_frames(gray_img, alpha, bio_text, cols=85, scale=0.43, frame
         # Left column: Fixed placement ASCII matrix block
         markdown_output.append('<td valign="top" width="60%">\n\n```text')
         
-        # Apply a subtle localized variance phase loop over each row
         for r_idx, row in enumerate(resized_gray):
             line_chars = []
             for c_idx, pixel in enumerate(row):
                 if resized_alpha[r_idx, c_idx] < 50:
-                    # Keep true background strictly empty space
+                    # Clear canvas background maps exactly to space characters
                     line_chars.append(" ")
                 else:
-                    # Apply a scanning light ripple across rows over time
-                    shimmer_offset = int(np.sin((r_idx / 4.0) + (frame * 1.2)) * 15)
+                    # Smooth sinusoidal contrast shimmer shifts text weight gently
+                    shimmer_offset = int(np.sin((r_idx / 5.0) + (frame * 1.0)) * 12)
                     adjusted_pixel = np.clip(pixel + shimmer_offset, 0, 255)
                     char_idx = int(adjusted_pixel / 256 * len(ASCII_CHARS))
                     line_chars.append(ASCII_CHARS[char_idx])
@@ -89,7 +96,7 @@ def generate_readme_frames(gray_img, alpha, bio_text, cols=85, scale=0.43, frame
             
         markdown_output.append("```\n\n</td>")
         
-        # Right column: Bio description profile text content block
+        # Right column: Bio description text block
         markdown_output.append(f'<td valign="top" width="40%">\n\n{bio_text}\n\n</td>')
         
         markdown_output.append("</tr>")
@@ -99,7 +106,7 @@ def generate_readme_frames(gray_img, alpha, bio_text, cols=85, scale=0.43, frame
         with open(frame_path, "w", encoding="utf-8") as f:
             f.write("\n".join(markdown_output))
             
-    print(f"[4/4] Continuous shimmer matrix animation successfully baked in '{OUTPUT_DIR}/'!")
+    print(f"[4/4] High contrast shimmer frames baked in '{OUTPUT_DIR}/'!")
 
 if __name__ == "__main__":
     processed_gray, alpha_channel = process_source_image(IMAGE_PATH)
