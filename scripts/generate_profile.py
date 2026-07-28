@@ -4,7 +4,8 @@ from rembg import remove
 import os
 
 # --- 1. CONFIGURATION & DATA ---
-ASCII_CHARS = [" ", ".", ":", "-", "=", "+", "*", "%", "@", "#"]
+# Inverted character sequence layout so 255 (white/background) maps strictly to a blank space " "
+ASCII_CHARS = ["#", "@", "%", "*", "+", "=", "-", ":", ".", " "]
 IMAGE_PATH = r"C:\Users\super\OneDrive\Pictures\Screenshots 1\Screenshot 2026-07-27 143529.png"
 OUTPUT_DIR = "data"
 FRAME_COUNT = 5
@@ -75,7 +76,7 @@ def image_to_ascii(gray_img, cols=50, scale=0.43):
 #--- 4. ANIMATION FRAME ENGINE ---
 def generate_readme_frames(ascii_matrix, bio_text, frames=5):
     os.makedirs(OUTPUT_DIR, exist_ok=True)
-    ascii_width = len(ascii_matrix)
+    ascii_width = len(ascii_matrix[0])
 
     for frame in range(frames):
         markdown_output = []
