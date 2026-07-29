@@ -3,43 +3,39 @@ import os
 OUTPUT_DIR = "data"
 FRAME_COUNT = 5
 
-# Hand-traced ASCII moth artwork matching the structure of your requested layout
+# Your exact new ASCII bug structure layout
 MOTH_ART = [
-    "                      .                      ",
-    "                     /|\\                     ",
-    "                    / | \\                    ",
-    "                   /  |  \\                   ",
-    "                  /   |   \\                  ",
-    "              .---'   |   '---.              ",
-    "             /  %@##  |  ##@%  \\             ",
-    "            /  %@###  |  ###@%  \\            ",
-    "           /  %####   |   ####%  \\           ",
-    "          /  #####:   |   :#####  \\          ",
-    "         /  #####: .--|--. :#####  \\         ",
-    "        /  #####: /   |   \\ :#####  \\        ",
-    "       /  #####: |    |    | :#####  \\       ",
-    "      /  #####:   \\   |   /   :#####  \\      ",
-    "     /  #####:     '--|--'     :#####  \\     ",
-    "    '=======-.        |        .-======='    ",
-    "      \\  ####\\        |        /####  /      ",
-    "       \\  ####\\       |       /####  /       ",
-    "        \\  ####\\      |      /####  /        ",
-    "         \\  ####\\     |     /####  /         ",
-    "          \\  ####\\    |    /####  /          ",
-    "           \\  ####\\   |   /####  /           ",
-    "            '------'  |  '------'            ",
-    "                      '                      "
+    "                          ",
+    "                          ",
+    "                          ",
+    "                          ",
+    "                          ",
+    "      \\          /        ",
+    "       \\        /         ",
+    "        \\      /          ",
+    "      .---(||)---.        ",
+    "        /##||##\\          ",
+    "       /###||###\\         ",
+    "      /####||####\        ",
+    "     /#####||#####\\       ",
+    "    /######||######\\      ",
+    "   /#######||#######\\     ",
+    "  /########||########\\    ",
+    "'----------''----------'  ",
+    "           ||             ",
+    "           ''             ",
 ]
 
-# Your exact requested profile information
+# Your exact requested profile information fields
 BIO_LINES = [
-    "Devansh Ruia",
-    "--------------------------------------------",
-    "OS:       Northeastern Linux, CS core",
-    "Kernel:   mechanistic interpretability",
-    "Uptime:   sophomore year",
-    "Mission:  explain how neural nets work using the",
-    "          networks that won't explain themselves",
+    "devansh@mark-ii",
+    "---------------------------------------------",
+    "OS:        Northeastern Linux, CS core",
+    "Kernel:    mechanistic interpretability",
+    "Uptime:    sophomore year",
+    "Debugging: literal, since 1947",
+    "Mission:   explain how neural nets work using the",
+    "           networks that won't explain themselves",
     "",
     "now:",
     "  Function vectors, extended to tool selection.",
@@ -76,28 +72,25 @@ def generate_readme_frames(art_lines, bio_text_lines, frames=5):
         markdown_output.append("```text")
         
         for i in range(total_height):
-            # 1. Fetch artwork row
             if i < art_height:
                 art_part = art_lines[i]
             else:
                 art_part = " " * art_width
                 
-            # Shimmer loop cycling inside texture blocks only
+            # Shimmer text textures on structural wing blocks (#) only
             animated_chars = []
             for char in art_part:
-                if char in ["#", "@", "%", "*"]:
-                    shimmer_pool = ["*", "%", "@", "#"]
+                if char == "#":
+                    shimmer_pool = [".", ":", "-", "=", "+", "*", "%", "@", "#"]
                     pool_idx = (shimmer_pool.index(char) + frame) % len(shimmer_pool)
                     animated_chars.append(shimmer_pool[pool_idx])
                 else:
                     animated_chars.append(char)
             
             clean_art_line = "".join(animated_chars)
-            
-            # 2. Fetch bio content row
             bio_part = bio_text_lines[i] if i < bio_height else ""
             
-            # 3. Combine with alignment pipe layout matching your example
+            # Formats your clean column pipeline seamlessly 
             markdown_output.append(f"{clean_art_line}  |  {bio_part}")
             
         markdown_output.append("```")
@@ -106,7 +99,7 @@ def generate_readme_frames(art_lines, bio_text_lines, frames=5):
         with open(frame_path, "w", encoding="utf-8") as f:
             f.write("\n".join(markdown_output))
             
-    print(f"[Success] Updated frames generated in '{OUTPUT_DIR}/'!")
+    print(f"[Success] New telemetry frames baked in '{OUTPUT_DIR}/'!")
 
 if __name__ == "__main__":
     generate_readme_frames(MOTH_ART, BIO_LINES, frames=FRAME_COUNT)
