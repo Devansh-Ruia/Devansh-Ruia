@@ -8,13 +8,13 @@
        \        /           |  Mission:   explain how neural nets work using the
         \      /            |             networks that won't explain themselves
       .---(||)---.          |  
-        /##||##\            |  now:
-       /###||###\           |    Function vectors, extended to tool selection.
-      /####||####\          |    A vector makes GPT-J act like it read the
-     /#####||#####\         |    instructions, then quits at the family border.
-    /######||######\        |    Blackout Markets, a shadow-mode cost and carbon
-   /#######||#######\       |    optimizer that ships advice operators can ignore.
-  /########||########\      |    Sparse autoencoders next, since free time had
+        /..||..\            |  now:
+       /...||...\           |    Function vectors, extended to tool selection.
+      /....||....\          |    A vector makes GPT-J act like it read the
+     /.....||.....\         |    instructions, then quits at the family border.
+    /......||......\        |    Blackout Markets, a shadow-mode cost and carbon
+   /.......||.......\       |    optimizer that ships advice operators can ignore.
+  /........||........\      |    Sparse autoencoders next, since free time had
 '----------''----------'    |    become a problem.
            ||               |  
            ''               |  previously:
